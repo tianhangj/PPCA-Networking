@@ -16,9 +16,13 @@ pass=0; fail=0
 ok()   { echo "  PASS: $1"; pass=$((pass+1)); }
 no()   { echo "  FAIL: $1"; fail=$((fail+1)); }
 check(){ local d="$1"; shift; if "$@"; then ok "$d"; else no "$d"; fi; }
+have() { command -v "$1" >/dev/null 2>&1 || { echo "missing required command: $1" >&2; exit 2; }; }
+
+have curl
+have nc
 
 # Prepare a known static file.
-ROOT=$(dirname "$0")/../www
+ROOT=$(cd "$(dirname "$0")/../www" && pwd)
 printf 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789' > "$ROOT/_conf.txt"
 trap 'rm -f "$ROOT/_conf.txt"' EXIT
 
@@ -40,7 +44,7 @@ echo "== framing / keep-alive =="
 check "chunked resp on gzip" bash -c "curl -sD - -o /dev/null --compressed $BASE/ | grep -qi 'transfer-encoding: chunked'"
 check "gzip encoding"     bash -c "curl -sD - -o /dev/null --compressed $BASE/ | grep -qi 'content-encoding: gzip'"
 check "keep-alive reuse"  bash -c "[ \$(curl -s -o /dev/null -w '%{num_connects}\n' $BASE/_conf.txt $BASE/ | awk '{s+=\$1} END{print s}') -eq 1 ]"
-check "chunked req + pipelined GET" bash -c "[ \$(printf 'POST /_conf.txt HTTP/1.1\r\nHost: x\r\nTransfer-Encoding: chunked\r\n\r\n5\r\nhello\r\n0\r\n\r\nGET /_conf.txt HTTP/1.1\r\nHost: x\r\nConnection: close\r\n\r\n' | nc $HOST $PORT | grep -c 'HTTP/1.1') -eq 2 ]"
+check "chunked req + pipelined GET" bash -c "[ \$(printf 'POST /_conf.txt HTTP/1.1\r\nHost: x\r\nTransfer-Encoding: chunked\r\n\r\n5\r\nhello\r\n0\r\n\r\nGET /_conf.txt HTTP/1.1\r\nHost: x\r\nConnection: close\r\n\r\n' | nc -w 3 $HOST $PORT | grep -c 'HTTP/1.1') -eq 2 ]"
 
 echo "== proxy / middleware (needs :$PXP proxy w/ basic_auth $AUTH) =="
 check "401 without auth"  bash -c "[ \$(curl -s -o /dev/null -w '%{http_code}' $PROXY/) = 401 ]"
