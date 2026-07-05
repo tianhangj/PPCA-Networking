@@ -13,7 +13,9 @@ The **server → client** (download) direction carries the bulk data and gets th
 bottleneck qdisc: `netem delay <rtt/2> loss <p> rate <bw> limit <qlen>`. The
 `limit` is the queue length in packets — this is the bufferbloat knob (≈BDP is
 well-tuned; ≫BDP is a bloated buffer; ≪BDP is a shallow buffer). The reverse
-direction gets `delay <rtt/2>` so the round trip is symmetric.
+direction gets `delay <rtt/2>` so the round trip is symmetric. Fairness runs use
+`iperf3 -R`, so the competing TCP CUBIC flow also sends server → client and
+shares the same bottleneck queue as the QUIC download.
 
 ## Quick start
 
@@ -29,6 +31,28 @@ Scenarios live in `scenarios.conf` (name, bandwidth, RTT, loss%, queue length,
 weight) — edit freely, and keep at least one **held-out** scenario out of the
 copy you give students.
 
+## Running on WSL2
+
+Windows users can try **WSL2** directly. WSL1 is not enough for this testbed.
+The run script needs Linux network namespaces, veth devices, `tc netem`, root /
+`CAP_NET_ADMIN`, and `iperf3`; whether all of that works depends on the WSL
+kernel installed on the machine.
+
+Inside Ubuntu WSL2, install tools and check the required kernel features:
+
+```bash
+sudo apt update
+sudo apt install -y iproute2 ethtool iperf3
+
+sudo ip netns add ppca-test
+sudo ip netns del ppca-test
+
+sudo modprobe sch_netem 2>/dev/null || true
+tc qdisc help | grep -q netem && echo "netem available"
+```
+
+Then try a short run. If you see `Operation not permitted`, `Unknown qdisc "netem"`, or namespace mount errors, use a native Linux machine or a Linux VM instead. WSL2 is allowed when these checks pass.
+
 ## Running without a Linux host
 
 macOS/Windows: use a Linux VM (UTM/Multipass/VirtualBox) or a privileged
@@ -37,7 +61,7 @@ container:
 ```bash
 docker run --rm -it --privileged -v "$PWD/..":/lab -w /lab/testbed \
   golang:1.24 bash -c 'apt-get update && apt-get install -y iproute2 ethtool iperf3 && \
-                       sudo ./run.sh all student'
+                       ./run.sh all student'
 ```
 
 `--privileged` is needed for `ip netns` and `tc`.
@@ -63,3 +87,21 @@ weighted scorecard. Re-score cached results without re-running:
 ```bash
 python3 score.py --conf scenarios.conf --results /tmp/out --cc student
 ```
+
+## Reference Scores
+
+A TA implemented several congestion-control policies and ran them through the
+published scorecard. These numbers are provided so you have a realistic sense of
+the score scale; a score around 40 is not surprising for a simple algorithm.
+
+| Policy | Score |
+|--------|------:|
+| `faircubic` | 57.6 |
+| `cubic` | 50.6 |
+| `bbr` | 46.7 |
+| `hysteria` | 43.0 |
+| `reno` | 31.7 |
+| `student` baseline | 26.3 |
+
+Treat these as reference points. The score multiplies utilization by fairness,
+so an algorithm that fills the pipe but starves TCP can still score poorly.

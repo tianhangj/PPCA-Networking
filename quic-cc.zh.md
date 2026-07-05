@@ -51,6 +51,22 @@ scenario_score = utilization × fairness
 total = Σ(weight × scenario_score) / Σ(weight) × 100
 ```
 
+### 参考分数
+
+TA 实现过若干拥塞控制策略，并在发布的 scorecard 上跑了完整评分。下面的
+数字用于帮助你理解分数尺度；如果你写的某个算法拿到 40 分左右，并不奇怪。
+
+| 策略 | 分数 |
+|------|-----:|
+| 我写的某个 optimized 算法 | 57.6 |
+| `cubic` | 50.6 |
+| `bbr` | 46.7 |
+| `hysteria` | 43.0 |
+| `reno` | 31.7 |
+| `student` baseline | 26.3 |
+
+这些数字仅供参考，不是硬性目标；你对算法的理解，你如何 justify 你的做法，仍然是评分的重要组成。
+
 ## 评分 (5')
 
 | 组件 | 权重 |

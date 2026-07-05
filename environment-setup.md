@@ -61,11 +61,40 @@ For projects requiring raw sockets (ping, traceroute) or network namespaces
 (QUIC CC testbed), you need a Linux environment. Options:
 
 - **Native Linux** — ideal
-- **WSL2** — works well for most projects
+- **WSL2** — works well for most projects; the QUIC CC testbed may work, but
+  depends on network namespace and `tc netem` support in your WSL kernel
 - **Docker** with `--cap-add=NET_RAW --cap-add=NET_ADMIN`
 - **LXD/LXC containers** — good for multi-host setups
 
 For the SOCKS5, frp, TLS MITM, and Mini Caddy projects, any OS works fine.
+
+### WSL2 check for QUIC CC
+
+Use WSL2, not WSL1. Inside your Ubuntu WSL2 shell:
+
+```bash
+sudo apt update
+sudo apt install -y iproute2 ethtool iperf3
+
+sudo ip netns add ppca-test
+sudo ip netns del ppca-test
+
+sudo modprobe sch_netem 2>/dev/null || true
+tc qdisc help | grep -q netem && echo "netem available"
+```
+
+Then try a short QUIC CC run:
+
+```bash
+cd quic-cc-lab/testbed
+sudo ./run.sh single broadband student /tmp/quic-cc-test 5
+sudo ./run.sh fair broadband student /tmp/quic-cc-test 5
+```
+
+If you see `Operation not permitted`, `Unknown qdisc "netem"`, or namespace
+mount errors, use a native Linux machine or a Linux VM. WSL2 is acceptable when
+the checks pass, but it is not the most reliable environment for the QUIC CC
+testbed.
 
 ### Quick start with LXD
 

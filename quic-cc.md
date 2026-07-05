@@ -61,6 +61,24 @@ scenario_score = utilization × fairness
 total = Σ(weight × scenario_score) / Σ(weight) × 100
 ```
 
+### Reference scores
+
+A TA implemented several congestion-control policies and ran them through the
+published scorecard. These numbers are provided so you have a realistic sense of
+the score scale; a score around 40 is not surprising for some algorithm you write.
+
+| Policy | Score |
+|--------|------:|
+| Some optimized algorithm I implemented | 57.6 |
+| `cubic` | 50.6 |
+| `bbr` | 46.7 |
+| `hysteria` | 43.0 |
+| `reno` | 31.7 |
+| `student` baseline | 26.3 |
+
+Use these numbers as context, not as a hard target. Your understanding of the
+algorithm, how you justify your algorithm, etc., is the major part of the grading.
+
 ## Grading (5')
 
 | Component | Weight |
