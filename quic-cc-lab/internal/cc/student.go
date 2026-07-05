@@ -25,7 +25,7 @@ package cc
 // pacing, halve-on-loss. It works, but it ramps up slowly, reacts poorly to
 // bursty loss, and leaves throughput on the table over high-BDP and lossy
 // links. Your job is to replace it with a real algorithm (e.g. CUBIC, BBR, a
-// delay-based scheme like Vegas/Copa, or your own design tuned for the proxy
+// delay-based scheme like Vegas/Copa, or your own design tuned for the network
 // scenarios in testbed/). See README.md §"What to implement".
 //
 // Rules:

@@ -1,6 +1,6 @@
-// Package tunnel holds the shared QUIC + TLS setup used by the proxy and the
-// benchmark. Students generally do not need to edit this; the interesting part
-// of the assignment lives in internal/cc.
+// Package tunnel holds the shared QUIC + TLS setup used by the benchmark.
+// Students generally do not need to edit this; the interesting part of the
+// assignment lives in internal/cc.
 //
 // One detail worth understanding (see README §"Flow control vs congestion
 // control"): the QUIC flow-control receive windows below are set deliberately

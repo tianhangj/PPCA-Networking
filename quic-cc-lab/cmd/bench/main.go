@@ -1,9 +1,7 @@
 // bench is the measurement harness the testbed runs. It performs a single
-// bulk download over the QUIC tunnel (server -> client) and reports goodput,
-// using the same tunnel + congestion-control plumbing as the proxy. Keeping the
-// benchmark separate from the proxy makes grading deterministic: no origin
-// server, no SOCKS negotiation, just one long stream governed by the CC under
-// test.
+// bulk download over QUIC (server -> client) and reports goodput. There is no
+// application protocol in the path: no origin server, no proxy negotiation,
+// just one long stream governed by the CC under test.
 //
 //	bench -mode server -listen :4433 -cc student
 //	bench -mode client -server 10.0.0.1:4433 -duration 15 -json

@@ -1,4 +1,4 @@
-.PHONY: build test bench proxy vet fmt clean score
+.PHONY: build test bench vet fmt clean score
 
 ALG ?= student
 # Backward compatibility for old invocations like `make bench CC=student`.
@@ -9,8 +9,6 @@ endif
 
 build:
 	go build -buildvcs=false -o bin/bench        ./cmd/bench
-	go build -buildvcs=false -o bin/proxy-server ./cmd/proxy-server
-	go build -buildvcs=false -o bin/proxy-client ./cmd/proxy-client
 
 vet:
 	go vet ./...
