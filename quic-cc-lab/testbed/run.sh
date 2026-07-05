@@ -28,11 +28,11 @@ CLI_IP=10.0.0.2
 PORT=4433
 
 need_root() { [[ $EUID -eq 0 ]] || { echo "must run as root (sudo)"; exit 1; }; }
+need_iperf3() { command -v iperf3 >/dev/null || { echo "iperf3 not found; skipping fairness run"; return 1; }; }
 
 build() {
-  [[ -x "$BENCH" ]] && return
   echo "building bench ..."
-  ( cd "$REPO" && go build -o "$BENCH" ./cmd/bench )
+  ( cd "$REPO" && go build -buildvcs=false -o "$BENCH" ./cmd/bench )
 }
 
 teardown() {
@@ -102,13 +102,15 @@ single() {
 # fair <scenario> <cc> <outdir> [duration]: student QUIC flow vs one TCP CUBIC flow.
 fair() {
   local scen=$1 cc=$2 outdir=$3 dur=${4:-20}
-  command -v iperf3 >/dev/null || { echo "iperf3 required for fairness runs"; exit 1; }
+  need_iperf3 || return 1
   load_scenario "$scen"
   build; mkdir -p "$outdir"
   setup "$S_BW" "$S_RTT" "$S_LOSS" "$S_QLEN"
 
   ip netns exec "$SRV_NS" "$BENCH" -mode server -listen "$SRV_IP:$PORT" -cc "$cc" &
   local bsrv=$!
+  # Run iperf in reverse mode so TCP bulk data travels server -> client, the
+  # same bottleneck direction as the QUIC download being evaluated.
   ip netns exec "$SRV_NS" iperf3 -s -1 >/dev/null 2>&1 &
   local isrv=$!; sleep 0.5
 
@@ -116,7 +118,7 @@ fair() {
   ip netns exec "$CLI_NS" "$BENCH" -mode client -server "$SRV_IP:$PORT" \
       -cc "$cc" -duration "${dur}s" -json > "$outdir/$scen.$cc.fair.quic.json" &
   local bcli=$!
-  ip netns exec "$CLI_NS" iperf3 -c "$SRV_IP" -C cubic -t "$dur" -J \
+  ip netns exec "$CLI_NS" iperf3 -c "$SRV_IP" -C cubic -R -t "$dur" -J \
       > "$outdir/$scen.$cc.fair.tcp.json" 2>/dev/null &
   local icli=$!
   wait "$bcli" || true; wait "$icli" || true
