@@ -196,9 +196,9 @@ dnsresolver [options]
 
 ### 提供给学生
 
-- `root.hints` 文件（在 `network-toolkit/` 目录中）
-- 测试用 DNS 数据包（hex 编码）用于单元测试 parser
-- 覆盖各种边界情况的测试域名列表
+- `network-toolkit/` 目录中的 `root.hints` 文件，用于启动递归 DNS 解析。
+
+你需要自行创建 Go module、CLI 结构、packet parser 测试，以及你选择实现的工具所需的集成测试。
 
 ---
 

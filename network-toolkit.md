@@ -194,9 +194,10 @@ dnsresolver [options]
 
 ### Provided
 
-- `root.hints` file (download from internic.net or use the one in the starter repo)
-- Test DNS packets (hex-encoded) for unit testing your parser
-- A list of test domains covering edge cases
+- `root.hints` file in `network-toolkit/` for bootstrapping recursive DNS resolution.
+
+You are expected to create your own Go module, CLI layout, packet parser tests,
+and integration tests for the tools you choose to implement.
 
 ---
 

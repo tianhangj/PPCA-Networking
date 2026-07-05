@@ -101,7 +101,7 @@
 
 各子项目独立给分，可只做其中一部分。
 
-**关键约束**：必须手写 ICMP 包构造和 DNS wire format 编解码。详见 [network-toolkit.zh.md](network-toolkit.zh.md)。初始文件在 [`network-toolkit/`](network-toolkit/) 目录。
+**关键约束**：必须手写 ICMP 包构造和 DNS wire format 编解码。详见 [network-toolkit.zh.md](network-toolkit.zh.md)。DNS resolver 需要的 root hints 文件在 [`network-toolkit/`](network-toolkit/) 目录。
 
 ---
 

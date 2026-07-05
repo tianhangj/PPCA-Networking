@@ -101,7 +101,7 @@ Build a progressive set of network diagnostic tools:
 
 Each sub-project is scored independently — you can complete just one or two.
 
-**Key constraint:** You must hand-write ICMP packet construction and DNS wire format encoding/decoding. No existing DNS or ICMP libraries allowed. See [network-toolkit.md](network-toolkit.md). Starter files in [`network-toolkit/`](network-toolkit/).
+**Key constraint:** You must hand-write ICMP packet construction and DNS wire format encoding/decoding. No existing DNS or ICMP libraries allowed. See [network-toolkit.md](network-toolkit.md). The DNS resolver root hints file is in [`network-toolkit/`](network-toolkit/).
 
 ---
 
