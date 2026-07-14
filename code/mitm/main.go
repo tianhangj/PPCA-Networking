@@ -8,13 +8,16 @@ import (
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"flag"
+	"fmt"
 	"io"
 	"log"
 	"math/big"
 	"net"
 	"os"
+	"os/signal"
 	"regexp"
 	"strings"
+	"syscall"
 	"time"
 )
 
@@ -28,8 +31,12 @@ func (ca *CertificateAuthority) SignCertificate(domain string) (*x509.Certificat
 	if err != nil {
 		return nil, nil, err
 	}
+	serialNumber, err := rand.Int(rand.Reader, new(big.Int).Lsh(big.NewInt(1), 128))
+	if err != nil {
+		return nil, nil, err
+	}
 	template := &x509.Certificate{
-		SerialNumber: big.NewInt(time.Now().Unix()),
+		SerialNumber: serialNumber,
 		Subject: pkix.Name{
 			Country:            []string{"CN"},
 			Province:           []string{"State"},
@@ -42,6 +49,9 @@ func (ca *CertificateAuthority) SignCertificate(domain string) (*x509.Certificat
 		ExtKeyUsage: []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth, x509.ExtKeyUsageClientAuth},
 		BasicConstraintsValid: true,
 	}
+	template.DNSNames = []string{domain}
+	template.CRLDistributionPoints = []string{}
+	
 	derBytes, err := x509.CreateCertificate(rand.Reader, template, ca.RootCert, &priv.PublicKey, ca.RootKey)
 	if err != nil {
 		return nil, nil, err
@@ -75,7 +85,7 @@ func handleConnection(ca *CertificateAuthority, conn net.Conn, conID int, logger
 		if !strings.Contains(host, ":") {
 			host = host + ":80"
 		}
-		logger.Printf("Connection %d: Handling HTTP connection to %s", conID, host)
+		logger.Printf("Connection %d: Handling HTTP connection %s to %s", conID, method, host)
 		serverConn, err := net.Dial("tcp", host)
 		if err != nil {
 			return
@@ -122,13 +132,15 @@ func handleConnection(ca *CertificateAuthority, conn net.Conn, conID int, logger
 			return
 		}
 		go func() {
-			buffer := make([]byte, 1024)
-			n, err := tlsConn.Read(buffer)
-			if err != nil {
-				return
+			for {
+				buffer := make([]byte, 1024)
+				n, err := tlsConn.Read(buffer)
+				if err != nil {
+					return
+				}
+				logger.Printf("Connection %d: <-[%d] %s\n", conID, n, string(buffer[:n]))
+				serverConn.Write(buffer[:n])
 			}
-			logger.Printf("Connection %d: <-[%d] %s\n", conID, n, string(buffer[:n]))
-			serverConn.Write(buffer[:n])
 		}()
 		buffer := make([]byte, 1024)
 		for {
@@ -149,13 +161,17 @@ func createCertificateAuthority(certPath, keyPath string) {
 	}
 	pub := &priv.PublicKey
 	ca := &x509.Certificate{
-		SerialNumber: big.NewInt(2020),
+		SerialNumber: big.NewInt(114514),
 		Subject: pkix.Name{
 			Organization: []string{"mitmproxy CA"},
+			Country: []string{"CN"},
+			Province: []string{"Shanghai"},
+			Locality: []string{"Shanghai"},
+			CommonName: "mitmproxy CA",
 		},
 		NotBefore: time.Now(),
 		NotAfter:  time.Now().AddDate(10, 0, 0),
-		KeyUsage:              x509.KeyUsageCertSign | x509.KeyUsageDigitalSignature,
+		KeyUsage:              x509.KeyUsageCertSign | x509.KeyUsageDigitalSignature | x509.KeyUsageCRLSign,
 		ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth, x509.ExtKeyUsageClientAuth},
 		BasicConstraintsValid: true,
 		IsCA:                  true,
@@ -200,6 +216,7 @@ func main() {
 	flag.StringVar(&ruleStr, "r", ".*", "A regex expression to filter log")
 	flag.Parse()
 	if createCA {
+		fmt.Println("Creating new CA certificate and key...")
 		createCertificateAuthority("ca/rootCA.crt", "ca/rootCA.key")
 		return
 	}
@@ -219,12 +236,20 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+	sigChan := make(chan os.Signal, 1)
+	signal.Notify(sigChan, syscall.SIGINT)
 	for {
-		conn, err := listener.Accept()
-		if err != nil {
-			panic(err)
+		select {
+		case <-sigChan:
+			logger.Println("Received SIGINT, shutting down...")
+			return
+		default:
+			conn, err := listener.Accept()
+			if err != nil {
+				panic(err)
+			}
+			conID++
+			go handleConnection(ca, conn, conID, logger, rule)
 		}
-		conID++
-		go handleConnection(ca, conn, conID, logger, rule)
 	}
 }
